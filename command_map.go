@@ -1,33 +1,51 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
+	"log"
 )
 
-func callbackMap(config *Config) error {
-	res, err := http.Get("https://pokeapi.co/api/v2/location/")
+func callbackMap(cfg *config) error {
+
+	res, err := cfg.pokeapiClient.ListLocalionAreas(cfg.nextLocationAreaURL)
 
 	if err != nil {
-		return fmt.Errorf("locations request error %v", err)
+		log.Fatal(err)
 	}
 
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	fmt.Println("Location areas:")
+
+	for _, value := range res.Results {
+		fmt.Println(value)
+	}
+
+	cfg.nextLocationAreaURL = res.Next
+	cfg.prevLocationAreaURL = res.Previous
+
+	return nil
+}
+
+func callbackMapb(cfg *config) error {
+
+	if cfg.prevLocationAreaURL == nil {
+		return errors.New("no previous page")
+	}
+
+	res, err := cfg.pokeapiClient.ListLocalionAreas(cfg.prevLocationAreaURL)
 
 	if err != nil {
-		return fmt.Errorf("locations request body error %v", err)
+		log.Fatal(err)
 	}
 
-	var result []string
+	fmt.Println("Location areas:")
 
-	err = json.Unmarshal(body, &result)
-
-	if err != nil {
-		return fmt.Errorf("unmarshal error %v", err)
+	for _, value := range res.Results {
+		fmt.Println(value)
 	}
+
+	cfg.nextLocationAreaURL = res.Next
+	cfg.prevLocationAreaURL = res.Previous
 
 	return nil
 }
